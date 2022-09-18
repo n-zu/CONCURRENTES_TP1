@@ -88,3 +88,66 @@ mod parse_line_tests {
         assert_eq!(res, Order::Order(0, 20, 30));
     }
 }
+
+#[cfg(test)]
+mod take_orders_tests {
+
+    use std::{fs, io::Write};
+
+    use crate::coffee_maker::orders::create_orders;
+
+    use super::*;
+
+    fn create_file(filename: &str, contents: &str) {
+        let mut file = fs::File::create(filename).unwrap();
+        file.write_all(contents.as_bytes()).unwrap();
+    }
+
+    #[test]
+    fn correctly_read_file() {
+        let filename = "assets/_temp__take_orders__correctly_read_file.csv";
+        create_file(filename, "1,2,3\n4,5,6\n7,8,9\n");
+
+        let orders: Orders = create_orders();
+        let handle = take_orders(filename.to_string(), orders.clone());
+
+        handle.join().unwrap();
+
+        let orders = orders.lock().unwrap();
+        assert_eq!(
+            *orders,
+            vec![
+                Order::Order(1, 2, 3),
+                Order::Order(4, 5, 6),
+                Order::Order(7, 8, 9),
+                Order::NoMoreOrders
+            ]
+        );
+
+        fs::remove_file(filename).unwrap();
+    }
+
+    #[test]
+
+    fn ignore_invalid_lines() {
+        let filename = "assets/_temp__take_orders__ignore_invalid_lines.csv";
+        create_file(filename, "Hello World!\n1,2,3\n4,5,6,7,8,9\n1,2,3");
+
+        let orders: Orders = create_orders();
+        let handle = take_orders(filename.to_string(), orders.clone());
+
+        handle.join().unwrap();
+
+        let orders = orders.lock().unwrap();
+        assert_eq!(
+            *orders,
+            vec![
+                Order::Order(1, 2, 3),
+                Order::Order(1, 2, 3),
+                Order::NoMoreOrders
+            ]
+        );
+
+        fs::remove_file(filename).unwrap();
+    }
+}

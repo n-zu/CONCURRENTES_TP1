@@ -1,9 +1,10 @@
 mod coffee_maker;
 use coffee_maker::take_orders::take_orders;
-use std::sync::{Arc, Mutex};
+
+use crate::coffee_maker::orders::create_orders;
 
 fn main() {
-    let orders: coffee_maker::orders::Orders = Arc::new(Mutex::new(Vec::new()));
+    let orders = create_orders();
     let handle = take_orders(String::from("./assets/orders.csv"), orders.clone());
 
     handle.join().unwrap();
