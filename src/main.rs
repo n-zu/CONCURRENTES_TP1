@@ -1,12 +1,27 @@
 mod coffee_maker;
-use coffee_maker::take_orders::take_orders;
+use std::thread::JoinHandle;
 
-use crate::coffee_maker::orders::create_orders;
+use coffee_maker::{orders::create_orders, spawn_dispenser, take_orders};
+
+pub const DISPENSERS: u16 = 8;
 
 fn main() {
-    let orders = create_orders();
-    let handle = take_orders(String::from("./assets/orders.csv"), orders.clone());
+    env_logger::init();
 
-    handle.join().unwrap();
-    println!("{:?}", orders);
+    let orders = create_orders();
+    let order_taker_handle = take_orders(String::from("./assets/orders.csv"), orders.clone());
+
+    let mut dispenser_handles: Vec<JoinHandle<()>> = Vec::new();
+
+    for id in 0..DISPENSERS {
+        let orders = orders.clone();
+        let handle = spawn_dispenser(id, orders);
+        dispenser_handles.push(handle);
+    }
+
+    order_taker_handle.join().unwrap();
+
+    for handle in dispenser_handles {
+        handle.join().unwrap();
+    }
 }

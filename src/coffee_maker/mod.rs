@@ -1,2 +1,7 @@
 pub mod orders;
-pub mod take_orders;
+
+mod take_orders;
+pub use take_orders::take_orders;
+
+mod dispenser;
+pub use dispenser::spawn_dispenser;

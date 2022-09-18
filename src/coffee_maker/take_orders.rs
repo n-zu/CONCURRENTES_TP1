@@ -1,10 +1,12 @@
+use super::orders::{Order, Orders};
+use log::{info, trace, warn};
 use std::{
     fs::File,
     io::{self, BufRead},
     thread::{self, JoinHandle},
 };
 
-use super::orders::{Order, Orders};
+const NAME: &str = "Order Taker";
 
 fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     let line = line?;
@@ -16,16 +18,18 @@ fn parse_line(line: io::Result<String>) -> io::Result<Order> {
 
     let error = io::ErrorKind::InvalidData;
 
-    Ok(Order::Order(
-        iter.next().ok_or(error)?.parse().or(Err(error))?,
-        iter.next().ok_or(error)?.parse().or(Err(error))?,
-        iter.next().ok_or(error)?.parse().or(Err(error))?,
-    ))
+    let coffee = iter.next().ok_or(error)?.parse().or(Err(error))?;
+    let water = iter.next().ok_or(error)?.parse().or(Err(error))?;
+    let foam = iter.next().ok_or(error)?.parse().or(Err(error))?;
+
+    let order = Order::from(coffee, water, foam);
+    Ok(order)
 }
 
 fn load_order(order: Order, orders: &Orders) {
     let mut orders = orders.lock().unwrap();
-    orders.push(order);
+    orders.push_back(order);
+    trace!("[{NAME}] Loaded order: {:?}", order);
 }
 
 pub fn take_orders(orders_filename: String, orders: Orders) -> JoinHandle<()> {
@@ -36,17 +40,20 @@ pub fn take_orders(orders_filename: String, orders: Orders) -> JoinHandle<()> {
         for line in lines {
             match parse_line(line) {
                 Ok(order) => load_order(order, &orders),
-                Err(e) => println!("Error Reading Order: {}", e),
+                Err(e) => warn!("[{NAME}] Invalid order: {e}"),
             }
         }
 
         let mut orders = orders.lock().unwrap();
-        orders.push(Order::NoMoreOrders);
+        orders.push_back(Order::NoMoreOrders);
+        info!("[{NAME}] No more orders");
     })
 }
 
 #[cfg(test)]
 mod parse_line_tests {
+    use crate::coffee_maker::orders::Order;
+
     use super::*;
 
     #[test]
@@ -77,15 +84,15 @@ mod parse_line_tests {
     fn valid_data() {
         let input = "1,2,3";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::Order(1, 2, 3));
+        assert_eq!(res, Order::from(1, 2, 3));
 
         let input = "10,0,0";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::Order(10, 0, 0));
+        assert_eq!(res, Order::from(10, 0, 0));
 
         let input = "0,20,30";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::Order(0, 20, 30));
+        assert_eq!(res, Order::from(0, 20, 30));
     }
 }
 
@@ -94,7 +101,7 @@ mod take_orders_tests {
 
     use std::{fs, io::Write};
 
-    use crate::coffee_maker::orders::create_orders;
+    use crate::coffee_maker::orders::{create_orders, Order};
 
     use super::*;
 
@@ -117,9 +124,9 @@ mod take_orders_tests {
         assert_eq!(
             *orders,
             vec![
-                Order::Order(1, 2, 3),
-                Order::Order(4, 5, 6),
-                Order::Order(7, 8, 9),
+                Order::from(1, 2, 3),
+                Order::from(4, 5, 6),
+                Order::from(7, 8, 9),
                 Order::NoMoreOrders
             ]
         );
@@ -142,8 +149,8 @@ mod take_orders_tests {
         assert_eq!(
             *orders,
             vec![
-                Order::Order(1, 2, 3),
-                Order::Order(1, 2, 3),
+                Order::from(1, 2, 3),
+                Order::from(1, 2, 3),
                 Order::NoMoreOrders
             ]
         );
