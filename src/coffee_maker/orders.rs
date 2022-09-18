@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Order {
-    Order(i32, i32, i32),
+    Order(u32, u32, u32),
     NoMoreOrders,
 }
 
