@@ -6,6 +6,9 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+/// Parses a line into an Order.
+/// Returns an error if there is no line or the line is not in the correct format.
+/// The correct format is: `<coffee:u32>,<water:u32>,<foam:u32>`
 fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     let line = line?;
     let mut iter = line.split(',');
@@ -24,6 +27,8 @@ fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     Ok(order)
 }
 
+/// Takes orders from a file and puts them into the queue.
+/// Pushes a `NoMoreOrders` order when finished.
 fn take_orders_loop(orders_file: File, orders: Arc<Orders>) {
     let lines = io::BufReader::new(&orders_file).lines();
 
@@ -36,6 +41,8 @@ fn take_orders_loop(orders_file: File, orders: Arc<Orders>) {
     orders.push(Order::NoMoreOrders);
 }
 
+/// Takes orders from a file by its name and puts them into the queue.
+/// Returns a handle to the thread that is taking the orders.
 pub fn take_orders(orders_filename: String, orders: Arc<Orders>) -> io::Result<JoinHandle<()>> {
     let orders_file = File::open(orders_filename)?;
     let handler = thread::spawn(move || take_orders_loop(orders_file, orders));

@@ -9,5 +9,11 @@ cargo test
 Run App:
 
 ```
-RUST_LOG=info cargo run
+info cargo run
+```
+
+Build Docs:
+
+```
+cargo doc --no-deps
 ```
