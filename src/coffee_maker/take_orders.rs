@@ -1,12 +1,10 @@
 use super::orders::{Order, Orders};
-use log::{info, trace, warn};
 use std::{
     fs::File,
     io::{self, BufRead},
+    sync::Arc,
     thread::{self, JoinHandle},
 };
-
-const NAME: &str = "Order Taker";
 
 fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     let line = line?;
@@ -26,28 +24,22 @@ fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     Ok(order)
 }
 
-fn load_order(order: Order, orders: &Orders) {
-    let mut orders = orders.lock().unwrap();
-    orders.push_back(order);
-    trace!("[{NAME}] Loaded order: {:?}", order);
+fn take_orders_loop(orders_file: File, orders: Arc<Orders>) {
+    let lines = io::BufReader::new(&orders_file).lines();
+
+    for line in lines {
+        if let Ok(order) = parse_line(line) {
+            orders.push(order);
+        }
+    }
+
+    orders.push(Order::NoMoreOrders);
 }
 
-pub fn take_orders(orders_filename: String, orders: Orders) -> JoinHandle<()> {
-    thread::spawn(move || {
-        let orders_file = File::open(orders_filename).unwrap();
-        let lines = io::BufReader::new(&orders_file).lines();
-
-        for line in lines {
-            match parse_line(line) {
-                Ok(order) => load_order(order, &orders),
-                Err(e) => warn!("[{NAME}] Invalid order: {e}"),
-            }
-        }
-
-        let mut orders = orders.lock().unwrap();
-        orders.push_back(Order::NoMoreOrders);
-        info!("[{NAME}] No more orders");
-    })
+pub fn take_orders(orders_filename: String, orders: Arc<Orders>) -> io::Result<JoinHandle<()>> {
+    let orders_file = File::open(orders_filename)?;
+    let handler = thread::spawn(move || take_orders_loop(orders_file, orders));
+    Ok(handler)
 }
 
 #[cfg(test)]
@@ -101,7 +93,7 @@ mod take_orders_tests {
 
     use std::{fs, io::Write};
 
-    use crate::coffee_maker::orders::{create_orders, Order};
+    use crate::coffee_maker::orders::{Order, Orders};
 
     use super::*;
 
@@ -115,21 +107,21 @@ mod take_orders_tests {
         let filename = "assets/_temp__take_orders__correctly_read_file.csv";
         create_file(filename, "1,2,3\n4,5,6\n7,8,9\n");
 
-        let orders: Orders = create_orders();
-        let handle = take_orders(filename.to_string(), orders.clone());
+        let orders = Orders::new();
+        let handle = take_orders(filename.to_string(), orders.clone()).unwrap();
 
         handle.join().unwrap();
 
-        let orders = orders.lock().unwrap();
-        assert_eq!(
-            *orders,
-            vec![
-                Order::from(1, 2, 3),
-                Order::from(4, 5, 6),
-                Order::from(7, 8, 9),
-                Order::NoMoreOrders
-            ]
-        );
+        let expected = vec![
+            Order::from(1, 2, 3),
+            Order::from(4, 5, 6),
+            Order::from(7, 8, 9),
+            Order::NoMoreOrders,
+        ];
+
+        for order in expected {
+            assert_eq!(orders.pop(), order);
+        }
 
         fs::remove_file(filename).unwrap();
     }
@@ -140,20 +132,20 @@ mod take_orders_tests {
         let filename = "assets/_temp__take_orders__ignore_invalid_lines.csv";
         create_file(filename, "Hello World!\n1,2,3\n4,5,6,7,8,9\n1,2,3");
 
-        let orders: Orders = create_orders();
-        let handle = take_orders(filename.to_string(), orders.clone());
+        let orders = Orders::new();
+        let handle = take_orders(filename.to_string(), orders.clone()).unwrap();
 
         handle.join().unwrap();
 
-        let orders = orders.lock().unwrap();
-        assert_eq!(
-            *orders,
-            vec![
-                Order::from(1, 2, 3),
-                Order::from(1, 2, 3),
-                Order::NoMoreOrders
-            ]
-        );
+        let expected = vec![
+            Order::from(1, 2, 3),
+            Order::from(1, 2, 3),
+            Order::NoMoreOrders,
+        ];
+
+        for order in expected {
+            assert_eq!(orders.pop(), order);
+        }
 
         fs::remove_file(filename).unwrap();
     }

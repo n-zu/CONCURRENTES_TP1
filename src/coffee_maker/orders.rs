@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
+use std_semaphore::Semaphore;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ingredients {
@@ -24,8 +25,28 @@ impl Order {
     }
 }
 
-pub type Orders = Arc<Mutex<VecDeque<Order>>>;
+pub struct Orders {
+    orders: Mutex<VecDeque<Order>>,
+    semaphore: Semaphore,
+}
 
-pub fn create_orders() -> Orders {
-    Arc::new(Mutex::new(VecDeque::new()))
+impl Orders {
+    pub fn new() -> Arc<Orders> {
+        Arc::new(Orders {
+            orders: Mutex::new(VecDeque::new()),
+            semaphore: Semaphore::new(0),
+        })
+    }
+
+    pub fn push(&self, order: Order) {
+        let mut orders = self.orders.lock().unwrap();
+        orders.push_back(order);
+        self.semaphore.release();
+    }
+
+    pub fn pop(&self) -> Order {
+        self.semaphore.acquire();
+        let mut orders = self.orders.lock().unwrap();
+        orders.pop_front().unwrap()
+    }
 }
