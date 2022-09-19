@@ -5,9 +5,9 @@ use std_semaphore::Semaphore;
 /// Stores the ingredients that are needed to make a drink.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ingredients {
-    pub coffee: u16,
-    pub water: u16,
-    pub foam: u16,
+    pub coffee: u32,
+    pub water: u32,
+    pub foam: u32,
 }
 
 /// Encapsules an Order or the lack thereof.
@@ -21,9 +21,9 @@ impl Order {
     /// Creates an order from the given ingredients.
     pub fn from(coffee: u32, water: u32, foam: u32) -> Order {
         Order::Order(Ingredients {
-            coffee: coffee as u16,
-            water: water as u16,
-            foam: foam as u16,
+            coffee,
+            water,
+            foam,
         })
     }
 }
