@@ -7,8 +7,8 @@ pub const DISPENSERS: u16 = 3;
 
 fn main() {
     let orders = Orders::new();
-    let order_taker_handle =
-        take_orders(String::from("./assets/orders.csv"), orders.clone()).unwrap();
+    let order_taker_handle = take_orders(String::from("./assets/orders.csv"), orders.clone())
+        .expect("Failed open orders");
 
     let resources = Resources::new();
     let mut dispenser_handles: Vec<JoinHandle<()>> = Vec::new();
@@ -17,9 +17,9 @@ fn main() {
         dispenser_handles.push(handle);
     }
 
-    order_taker_handle.join().unwrap();
+    order_taker_handle.join().expect("Order Taker Panicked");
 
     for handle in dispenser_handles {
-        handle.join().unwrap();
+        handle.join().expect("Dispenser Panicked");
     }
 }

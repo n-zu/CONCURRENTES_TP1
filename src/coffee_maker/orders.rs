@@ -46,7 +46,7 @@ impl Orders {
 
     /// Adds an order to the queue.
     pub fn push(&self, order: Order) {
-        let mut orders = self.orders.lock().unwrap();
+        let mut orders = self.orders.lock().expect("Failed to lock orders");
         orders.push_back(order);
         self.semaphore.release();
     }
@@ -55,7 +55,9 @@ impl Orders {
     /// If there are no orders, the thread will be blocked until there is one.
     pub fn pop(&self) -> Order {
         self.semaphore.acquire();
-        let mut orders = self.orders.lock().unwrap();
-        orders.pop_front().unwrap()
+        let mut orders = self.orders.lock().expect("Failed to lock orders");
+        orders
+            .pop_front()
+            .expect("No orders in queue (Invalid State)")
     }
 }

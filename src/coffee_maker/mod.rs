@@ -7,4 +7,4 @@ mod dispenser;
 pub use dispenser::spawn_dispenser;
 
 mod resources;
-pub use resources::Resources;
+pub use resources::{ResourceResult, Resources};

@@ -2,23 +2,24 @@ use std::{sync::Arc, thread};
 
 use super::{
     orders::{Ingredients, Order, Orders},
-    Resources,
+    ResourceResult, Resources,
 };
 
 /// Handles a single order.
 /// Taking the necessary ingredients from the resources.
-fn handle_order(ingredients: Ingredients, resources: &Arc<Resources>) {
-    println!("Handling order: {:?}", ingredients);
-    resources.get_coffee(ingredients.coffee).unwrap();
-    resources.get_water(ingredients.water).unwrap();
-    resources.get_foam(ingredients.foam).unwrap();
-    println!("Done handling order: {:?}", ingredients);
+fn handle_order(ingredients: Ingredients, resources: &Arc<Resources>) -> ResourceResult {
+    resources.use_coffee(ingredients.coffee)?;
+    resources.use_water(ingredients.water)?;
+    resources.use_foam(ingredients.foam)?;
+    Ok(())
 }
 
 /// Handles orders from the queue until there are no more orders.
 fn dispenser(orders: Arc<Orders>, resources: Arc<Resources>) {
     while let Order::Order(ingredients) = orders.pop() {
-        handle_order(ingredients, &resources);
+        if let Err(_err) = handle_order(ingredients, &resources) {
+            // unable to handle order
+        }
     }
     orders.push(Order::NoMoreOrders);
 }
