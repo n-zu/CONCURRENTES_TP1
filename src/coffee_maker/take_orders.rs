@@ -23,7 +23,7 @@ fn parse_line(line: io::Result<String>) -> io::Result<Order> {
     let water = iter.next().ok_or(error)?.parse().or(Err(error))?;
     let foam = iter.next().ok_or(error)?.parse().or(Err(error))?;
 
-    let order = Order::from(coffee, water, foam);
+    let order = Order::from(coffee, water, foam).or(Err(error))?;
     Ok(order)
 }
 
@@ -83,15 +83,15 @@ mod parse_line_tests {
     fn valid_data() {
         let input = "1,2,3";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::from(1, 2, 3));
+        assert_eq!(res, Order::from(1, 2, 3).unwrap());
 
         let input = "10,0,0";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::from(10, 0, 0));
+        assert_eq!(res, Order::from(10, 0, 0).unwrap());
 
         let input = "0,20,30";
         let res = parse_line(Ok(input.to_string())).unwrap();
-        assert_eq!(res, Order::from(0, 20, 30));
+        assert_eq!(res, Order::from(0, 20, 30).unwrap());
     }
 }
 
@@ -120,9 +120,9 @@ mod take_orders_tests {
         handle.join().unwrap();
 
         let expected = vec![
-            Order::from(1, 2, 3),
-            Order::from(4, 5, 6),
-            Order::from(7, 8, 9),
+            Order::from(1, 2, 3).unwrap(),
+            Order::from(4, 5, 6).unwrap(),
+            Order::from(7, 8, 9).unwrap(),
             Order::NoMoreOrders,
         ];
 
@@ -145,8 +145,8 @@ mod take_orders_tests {
         handle.join().unwrap();
 
         let expected = vec![
-            Order::from(1, 2, 3),
-            Order::from(1, 2, 3),
+            Order::from(1, 2, 3).unwrap(),
+            Order::from(1, 2, 3).unwrap(),
             Order::NoMoreOrders,
         ];
 

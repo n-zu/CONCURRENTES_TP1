@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std_semaphore::Semaphore;
 
+use super::config;
+
 /// Stores the ingredients that are needed to make a drink.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ingredients {
@@ -19,12 +21,18 @@ pub enum Order {
 
 impl Order {
     /// Creates an order from the given ingredients.
-    pub fn from(coffee: u32, water: u32, foam: u32) -> Order {
-        Order::Order(Ingredients {
-            coffee,
-            water,
-            foam,
-        })
+    pub fn from(coffee: u32, water: u32, foam: u32) -> Result<Order, String> {
+        if coffee > config::C {
+            Err("Coffee is too much".to_string())
+        } else if foam > config::E {
+            Err("Foam is too much".to_string())
+        } else {
+            Ok(Order::Order(Ingredients {
+                coffee,
+                water,
+                foam,
+            }))
+        }
     }
 }
 
