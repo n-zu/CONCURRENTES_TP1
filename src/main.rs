@@ -1,5 +1,5 @@
 mod coffee_maker;
-use std::thread::JoinHandle;
+use std::{sync::atomic::Ordering, thread::JoinHandle};
 
 use coffee_maker::{orders::Orders, spawn_dispenser, take_orders, Resources};
 
@@ -22,6 +22,8 @@ fn main() {
         INITIAL_MILK,
     )
     .expect("Failed to create resources");
+    let (monitor_handle, stop_monitor) = resources.monitor(300);
+
     let mut dispenser_handles: Vec<JoinHandle<()>> = Vec::new();
     for _ in 0..DISPENSERS {
         let handle = spawn_dispenser(orders.clone(), resources.clone());
@@ -33,4 +35,7 @@ fn main() {
     for handle in dispenser_handles {
         handle.join().expect("Dispenser Panicked");
     }
+
+    stop_monitor.store(true, Ordering::Relaxed);
+    monitor_handle.join().expect("Monitor Panicked");
 }

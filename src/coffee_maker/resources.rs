@@ -1,24 +1,29 @@
 use std::{
-    sync::{Arc, Mutex, MutexGuard},
-    thread,
+    sync::{atomic::AtomicBool, Arc, Mutex, MutexGuard},
+    thread::{self, JoinHandle},
 };
 
-use super::{config, resources_monitor::ResourcesMonitor};
+use super::{
+    config,
+    resources_monitor::{monitor_resources, ResourcesMonitor},
+};
 
-const COFFEE_FIXED_TIME: u32 = 4;
-const COFFEE_TIME_PER_MG: u32 = 2;
+const SPEED: u32 = 10;
 
-const WATER_FIXED_TIME: u32 = 2;
-const WATER_TIME_PER_ML: u32 = 1;
+const COFFEE_FIXED_TIME: u32 = 4 / SPEED;
+const COFFEE_TIME_PER_MG: u32 = 30 / SPEED;
 
-const FOAM_FIXED_TIME: u32 = 5;
-const FOAM_TIME_PER_ML: u32 = 5;
+const WATER_FIXED_TIME: u32 = 10 / SPEED;
+const WATER_TIME_PER_ML: u32 = 4 / SPEED;
 
-const GRIND_COFFEE_FIXED_TIME: u32 = 4;
-const GRIND_COFFEE_TIME_PER_MG: u32 = 2;
+const FOAM_FIXED_TIME: u32 = 4 / SPEED;
+const FOAM_TIME_PER_ML: u32 = 20 / SPEED;
 
-const WIP_MILK_FIXED_TIME: u32 = 4;
-const WIP_MILK_TIME_PER_MG: u32 = 2;
+const GRIND_COFFEE_FIXED_TIME: u32 = 4 / SPEED;
+const GRIND_COFFEE_TIME_PER_MG: u32 = 50 / SPEED;
+
+const WIP_MILK_FIXED_TIME: u32 = 4 / SPEED;
+const WIP_MILK_TIME_PER_MG: u32 = 60 / SPEED;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -32,7 +37,7 @@ pub struct Resources {
     coffee_beans: Mutex<u32>,
     foam: Mutex<u32>,
     milk: Mutex<u32>,
-    monitor: Mutex<ResourcesMonitor>,
+    monitor: Arc<Mutex<ResourcesMonitor>>,
 }
 
 impl Resources {
@@ -56,7 +61,12 @@ impl Resources {
                 coffee_beans: Mutex::new(coffee_beans),
                 foam: Mutex::new(foam),
                 milk: Mutex::new(milk),
-                monitor: Mutex::new(ResourcesMonitor::new(coffee, coffee_beans, foam, milk)),
+                monitor: Arc::new(Mutex::new(ResourcesMonitor::new(
+                    coffee,
+                    coffee_beans,
+                    foam,
+                    milk,
+                ))),
             }))
         }
     }
@@ -150,5 +160,10 @@ impl Resources {
         monitor.update_foam(*foam);
 
         Ok(())
+    }
+
+    pub fn monitor(&self, millis: u64) -> (JoinHandle<()>, Arc<AtomicBool>) {
+        let monitor = self.monitor.clone();
+        monitor_resources(monitor, millis)
     }
 }
