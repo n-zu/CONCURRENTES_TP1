@@ -30,3 +30,29 @@ fn dispenser(orders: Arc<Orders>, resources: Arc<Resources>) {
 pub fn spawn_dispenser(orders: Arc<Orders>, resources: Arc<Resources>) -> thread::JoinHandle<()> {
     thread::spawn(move || dispenser(orders, resources))
 }
+
+#[cfg(test)]
+mod dispenser_tests {
+
+    use super::*;
+
+    #[test]
+    fn dispenser_consumes_resources() {
+        let orders = Orders::new();
+        let resources = Resources::new(100, 0, 100, 0).expect("Failed to create resources");
+        let dispenser = spawn_dispenser(orders.clone(), resources.clone());
+
+        for _ in 0..9 {
+            orders.push(Order::from(10, 10, 10).expect("Failed to create order"));
+        }
+        orders.push(Order::NoMoreOrders);
+
+        dispenser.join().expect("Failed to join dispenser thread");
+
+        resources.use_coffee(10).expect("Should not be empty");
+        resources.use_foam(10).expect("Should not be empty");
+
+        resources.use_coffee(10).expect_err("Should be empty");
+        resources.use_foam(10).expect_err("Should be empty");
+    }
+}

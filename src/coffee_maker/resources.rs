@@ -1,12 +1,26 @@
 use std::{
     sync::{atomic::AtomicBool, Arc, Mutex, MutexGuard},
-    thread::{self, JoinHandle},
+    thread::JoinHandle,
 };
 
 use super::{
     config,
     resources_monitor::{monitor_resources, ResourcesMonitor},
 };
+
+pub mod sleep {
+    use std::time::Duration;
+
+    #[cfg(not(test))]
+    pub fn sleep(duration: Duration) {
+        std::thread::sleep(duration);
+    }
+
+    #[cfg(test)]
+    pub fn sleep(_duration: Duration) {
+        std::thread::yield_now();
+    }
+}
 
 const SPEED: u32 = 10;
 
@@ -89,7 +103,7 @@ impl Resources {
             Err(Error::InsufficientResources)
         } else if needed > 0 {
             let duration = needed as u32 * GRIND_COFFEE_TIME_PER_MG + GRIND_COFFEE_FIXED_TIME;
-            thread::sleep(std::time::Duration::from_millis(duration.into()));
+            sleep::sleep(std::time::Duration::from_millis(duration.into()));
             *coffee_beans -= needed as u32;
             *coffee += needed as u32;
 
@@ -115,7 +129,7 @@ impl Resources {
             Self::grind_needed_coffee_beans(coffee, coffee_beans, amount, &self.monitor)?;
 
         let duration = amount * COFFEE_TIME_PER_MG + COFFEE_FIXED_TIME;
-        thread::sleep(std::time::Duration::from_millis(duration.into()));
+        sleep::sleep(std::time::Duration::from_millis(duration.into()));
         *coffee -= amount;
 
         let mut monitor = self.monitor.lock().expect("Failed to lock monitor");
@@ -128,7 +142,7 @@ impl Resources {
     /// Takes time according to the amount.
     pub fn use_water(&self, amount: u32) -> ResourceResult {
         let duration = amount * WATER_TIME_PER_ML + WATER_FIXED_TIME;
-        thread::sleep(std::time::Duration::from_millis(duration.into()));
+        sleep::sleep(std::time::Duration::from_millis(duration.into()));
         Ok(())
     }
 
@@ -145,7 +159,7 @@ impl Resources {
             Err(Error::InsufficientResources)
         } else if needed > 0 {
             let duration = needed as u32 * WIP_MILK_TIME_PER_MG + WIP_MILK_FIXED_TIME;
-            thread::sleep(std::time::Duration::from_millis(duration.into()));
+            sleep::sleep(std::time::Duration::from_millis(duration.into()));
             *milk -= needed as u32;
             *foam += needed as u32;
 
@@ -168,7 +182,7 @@ impl Resources {
         let mut foam = Self::wip_needed_foam(foam, milk, amount, &self.monitor)?;
 
         let duration = amount * FOAM_TIME_PER_ML + FOAM_FIXED_TIME;
-        thread::sleep(std::time::Duration::from_millis(duration.into()));
+        sleep::sleep(std::time::Duration::from_millis(duration.into()));
         *foam -= amount;
 
         let mut monitor = self.monitor.lock().expect("Failed to lock monitor");
