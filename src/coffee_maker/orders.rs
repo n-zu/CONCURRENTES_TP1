@@ -69,3 +69,101 @@ impl Orders {
             .expect("No orders in queue (Invalid State)")
     }
 }
+
+#[cfg(test)]
+mod order_tests {
+    use super::*;
+
+    #[test]
+    fn create_empty_order() {
+        let order = Order::from(0, 0, 0).expect("Failed to create order");
+        assert_eq!(
+            order,
+            Order::Order(Ingredients {
+                coffee: 0,
+                water: 0,
+                foam: 0
+            })
+        );
+    }
+
+    #[test]
+    fn create_order_with_valid_amount_of_coffee_and_foam() {
+        let order = Order::from(config::C, 0, config::E);
+        assert!(order.is_ok());
+    }
+
+    #[test]
+    fn create_order_with_too_much_coffee() {
+        let order = Order::from(config::C + 1, 0, 0);
+        assert!(order.is_err());
+    }
+
+    #[test]
+    fn create_order_with_too_much_foam() {
+        let order = Order::from(0, 0, config::E + 1);
+        assert!(order.is_err());
+    }
+
+    #[test]
+    fn create_order_with_too_much_coffee_and_foam() {
+        let order = Order::from(config::C + 1, 0, config::E + 1);
+        assert!(order.is_err());
+    }
+}
+
+#[cfg(test)]
+mod orders_tests {
+
+    use super::*;
+
+    #[test]
+    fn create_orders() {
+        let orders = Orders::new();
+        assert_eq!(orders.orders.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn push_order() {
+        let orders = Orders::new();
+        orders.push(Order::from(0, 0, 0).expect("Failed to create order"));
+        assert_eq!(orders.orders.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn pop_order() {
+        let orders = Orders::new();
+        orders.push(Order::from(0, 0, 0).expect("Failed to create order"));
+        assert_eq!(orders.orders.lock().unwrap().len(), 1);
+        orders.pop();
+        assert_eq!(orders.orders.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn produce_and_consume_from_different_threads() {
+        let order_num = 50;
+        let orders = Orders::new();
+        let orders_prod = orders.clone();
+        let orders_cons = orders.clone();
+
+        let producer = std::thread::spawn(move || {
+            for i in 0..order_num {
+                orders_prod.push(Order::from(0, i, 0).expect("Failed to create order"));
+            }
+        });
+
+        let consumer = std::thread::spawn(move || {
+            for i in 0..order_num {
+                let order = orders_cons.pop();
+                if let Order::Order(Ingredients { water: w, .. }) = order {
+                    assert_eq!(w, i);
+                } else {
+                    panic!("Invalid order");
+                }
+            }
+        });
+
+        producer.join().expect("Failed to join producer");
+        consumer.join().expect("Failed to join consumer");
+    }
+}
