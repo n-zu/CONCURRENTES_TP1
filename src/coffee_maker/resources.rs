@@ -25,13 +25,17 @@ const GRIND_COFFEE_TIME_PER_MG: u32 = 50 / SPEED;
 const WIP_MILK_FIXED_TIME: u32 = 4 / SPEED;
 const WIP_MILK_TIME_PER_MG: u32 = 60 / SPEED;
 
+/// Resource Errors
 #[derive(Debug, Clone)]
 pub enum Error {
     InsufficientResources,
 }
 
+/// Result Wrapper for Resource
 pub type ResourceResult = Result<(), Error>;
 
+/// Stores the available resources and a monitor to keep track of them.
+/// Can be used thread-safely.
 pub struct Resources {
     coffee: Mutex<u32>,
     coffee_beans: Mutex<u32>,
@@ -41,6 +45,7 @@ pub struct Resources {
 }
 
 impl Resources {
+    /// Creates a new Resources instance.
     pub fn new(
         coffee: u32,
         coffee_beans: u32,
@@ -71,6 +76,8 @@ impl Resources {
         }
     }
 
+    /// Transforms the required amount of coffee_beans into coffee.
+    /// Takes time according to the amount.
     fn grind_needed_coffee_beans<'cof>(
         mut coffee: MutexGuard<'cof, u32>,
         mut coffee_beans: MutexGuard<u32>,
@@ -95,6 +102,8 @@ impl Resources {
         }
     }
 
+    /// Reduces the required amount of coffee.
+    /// Takes time according to the amount.
     pub fn use_coffee(&self, amount: u32) -> ResourceResult {
         let coffee = self.coffee.lock().expect("Failed to lock coffee");
         let coffee_beans = self
@@ -115,12 +124,16 @@ impl Resources {
         Ok(())
     }
 
+    /// Simulates using the required amount of water.
+    /// Takes time according to the amount.
     pub fn use_water(&self, amount: u32) -> ResourceResult {
         let duration = amount * WATER_TIME_PER_ML + WATER_FIXED_TIME;
         thread::sleep(std::time::Duration::from_millis(duration.into()));
         Ok(())
     }
 
+    /// Transforms the required amount of milk into foam.
+    /// Takes time according to the amount.
     fn wip_needed_foam<'cof>(
         mut foam: MutexGuard<'cof, u32>,
         mut milk: MutexGuard<u32>,
@@ -146,6 +159,8 @@ impl Resources {
         }
     }
 
+    /// Reduces the required amount of foam.
+    /// Takes time according to the amount.
     pub fn use_foam(&self, amount: u32) -> ResourceResult {
         let foam = self.foam.lock().expect("Failed to lock foam");
         let milk = self.milk.lock().expect("Failed to lock milk");
@@ -162,8 +177,11 @@ impl Resources {
         Ok(())
     }
 
-    pub fn monitor(&self, millis: u64) -> (JoinHandle<()>, Arc<AtomicBool>) {
+    /// Starts the monitor. this will print the current resources at an interval.
+    /// Returns a handle to the monitor thread and an AtomicBool to stop it.
+    /// The AtomicBool is set to true when the monitor is stopped.
+    pub fn monitor(&self, interval_millis: u64) -> (JoinHandle<()>, Arc<AtomicBool>) {
         let monitor = self.monitor.clone();
-        monitor_resources(monitor, millis)
+        monitor_resources(monitor, interval_millis)
     }
 }
