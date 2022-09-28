@@ -1,14 +1,14 @@
 mod coffee_maker;
 use std::{sync::atomic::Ordering, thread::JoinHandle};
 
-use coffee_maker::{orders::Orders, spawn_dispenser, take_orders, Resources};
+use coffee_maker::{config, orders::Orders, spawn_dispenser, take_orders, Resources};
 
 pub const DISPENSERS: u16 = 3;
 
-const INITIAL_COFFEE: u32 = 1000;
-const INITIAL_COFFEE_BEANS: u32 = 5000;
-const INITIAL_FOAM: u32 = 1000;
-const INITIAL_MILK: u32 = 5000;
+const INITIAL_COFFEE: u32 = config::C;
+const INITIAL_COFFEE_BEANS: u32 = config::G;
+const INITIAL_FOAM: u32 = config::E;
+const INITIAL_MILK: u32 = config::L;
 
 fn main() {
     let orders = Orders::new();
