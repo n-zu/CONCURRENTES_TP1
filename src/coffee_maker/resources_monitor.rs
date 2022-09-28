@@ -33,8 +33,8 @@ impl ResourcesMonitor {
             coffee_beans: initial_coffee_beans,
             foam: initial_foam,
             milk: initial_milk,
-            low_on_coffee_beans: false,
-            low_on_milk: false,
+            low_on_coffee_beans: initial_coffee_beans < config::G * config::X / 100,
+            low_on_milk: initial_milk < config::L * config::X / 100,
         }
     }
 
@@ -44,9 +44,7 @@ impl ResourcesMonitor {
     }
     /// Updates the amount of coffee beans.
     pub fn update_coffee_beans(&mut self, coffee_beans: u32) {
-        if coffee_beans < config::G * config::X / 100 {
-            self.low_on_coffee_beans = true;
-        }
+        self.low_on_coffee_beans = coffee_beans < config::G * config::X / 100;
         self.coffee_beans = coffee_beans;
     }
 
@@ -56,9 +54,7 @@ impl ResourcesMonitor {
     }
     /// Updates the amount of milk.
     pub fn update_milk(&mut self, milk: u32) {
-        if milk < config::L * config::X / 100 {
-            self.low_on_milk = true;
-        }
+        self.low_on_milk = milk < config::L * config::X / 100;
         self.milk = milk;
     }
 }
@@ -111,4 +107,57 @@ pub fn monitor_resources(
     });
 
     (handle, stop)
+}
+
+#[cfg(test)]
+mod resources_monitor_tests {
+    use crate::coffee_maker::config;
+
+    #[test]
+    fn update_coffee() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        monitor.update_coffee(100);
+        assert_eq!(monitor.coffee, 100);
+    }
+
+    #[test]
+    fn update_coffee_beans() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        monitor.update_coffee_beans(100);
+        assert_eq!(monitor.coffee_beans, 100);
+    }
+
+    #[test]
+    fn update_foam() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        monitor.update_foam(100);
+        assert_eq!(monitor.foam, 100);
+    }
+
+    #[test]
+    fn update_milk() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        monitor.update_milk(100);
+        assert_eq!(monitor.milk, 100);
+    }
+
+    #[test]
+    fn update_coffe_beans_below_threshold() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        assert_eq!(monitor.low_on_coffee_beans, true);
+        monitor.update_coffee_beans(config::G);
+        assert_eq!(monitor.low_on_coffee_beans, false);
+        monitor.update_coffee_beans(config::G * config::X / 100 - 1);
+        assert_eq!(monitor.low_on_coffee_beans, true);
+    }
+
+    #[test]
+    fn update_milk_below_threshold() {
+        let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
+        assert_eq!(monitor.low_on_milk, true);
+        monitor.update_milk(config::L);
+        assert_eq!(monitor.low_on_milk, false);
+        monitor.update_milk(config::L * config::X / 100 - 1);
+        assert_eq!(monitor.low_on_milk, true);
+    }
 }
