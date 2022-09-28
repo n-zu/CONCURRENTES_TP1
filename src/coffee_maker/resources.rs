@@ -199,3 +199,76 @@ impl Resources {
         monitor_resources(monitor, interval_millis)
     }
 }
+
+#[cfg(test)]
+mod resources_test {
+
+    use super::*;
+
+    #[test]
+    fn can_use_water() {
+        let resources = Resources::new(0, 0, 0, 0).unwrap();
+        resources.use_water(1000000000).unwrap();
+    }
+
+    #[test]
+    fn can_use_coffee() {
+        let resources = Resources::new(100, 100, 0, 0).unwrap();
+        resources.use_coffee(100).unwrap();
+    }
+
+    #[test]
+    fn can_use_foam() {
+        let resources = Resources::new(0, 0, 0, 100).unwrap();
+        resources.use_foam(100).unwrap();
+    }
+
+    #[test]
+    fn cant_use_coffee() {
+        let resources = Resources::new(0, 0, 0, 0).unwrap();
+        resources.use_coffee(100).expect_err("Should have failed");
+    }
+
+    #[test]
+    fn cant_use_foam() {
+        let resources = Resources::new(0, 0, 0, 0).unwrap();
+        resources.use_foam(100).expect_err("Should have failed");
+    }
+
+    #[test]
+    fn can_use_coffee_grinding_beans() {
+        let resources = Resources::new(0, 100, 0, 0).unwrap();
+        resources.use_coffee(100).unwrap();
+    }
+
+    #[test]
+    fn can_use_foam_wiping_milk() {
+        let resources = Resources::new(0, 0, 0, 100).unwrap();
+        resources.use_foam(100).unwrap();
+    }
+
+    #[test]
+    fn can_use_resources_from_multiple_threads() {
+        let resources = Resources::new(100, 100, 100, 100).unwrap();
+        let mut handles = vec![];
+        for _ in 0..9 {
+            let resources = resources.clone();
+            handles.push(std::thread::spawn(move || {
+                resources.use_water(1000000000).unwrap();
+                resources.use_coffee(20).unwrap();
+                resources.use_foam(20).unwrap();
+            }));
+        }
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        // should still have some left
+        resources.use_coffee(20).unwrap();
+        resources.use_foam(20).unwrap();
+
+        // its now empty
+        resources.use_coffee(20).expect_err("Should have failed");
+        resources.use_foam(20).expect_err("Should have failed");
+    }
+}
