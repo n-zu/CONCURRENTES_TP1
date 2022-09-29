@@ -1,4 +1,12 @@
-# Internet of Coffee
+<h1>
+Internet of Coffee
+
+<a href="docs/README-ES.md">
+  <img align="right" height="40"
+  alt="ES" src="https://cdn-icons-png.flaticon.com/512/197/197593.png">
+</a>
+
+</h1>
 
 ![Coffee Maker](/assets/coffee_maker.gif)
 
@@ -22,7 +30,7 @@ It is assumed that the cups can't hold more coffee or foam than the machines con
 
 It is also assumed that the machine's resources are enough to fulfill all the orders.
 
-Orders are queued concurrently in a `Mutex<VecDeque>` and kept track through a `Semaphore` to be fulfilled in FIFO order.
+Orders are queued concurrently in a `Mutex<VecDeque>` and kept track through a `Semaphore`.
 
 > `Orders` provides an interface similar to a queue that can be used safely by multiple threads.
 > Differently, `pop` will block until an order is available; which is achieved through the use of a `Semaphore`.
