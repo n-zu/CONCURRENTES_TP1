@@ -12,7 +12,7 @@ Internet del Cafe
 
 Simule una maquina de cafe con multiples boquillas.
 
-La máquina posee una cantidad predeterminada de **café**, **espuma**, **granos de café** (para moler), **leche** (para batir), así como un suministro ilimitado de \*_agua_ \*.
+La máquina posee una cantidad predeterminada de **café**, **espuma**, **granos de café** (para moler), **leche** (para batir), así como un suministro ilimitado de **agua**.
 
 Los pedidos se leen de `assets/orders.csv` como líneas que especifican _café (mg)_, _agua (ml)_ y _leche (ml)_, en ese orden, separados por comas.
 
