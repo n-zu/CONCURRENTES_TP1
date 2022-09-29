@@ -36,8 +36,8 @@ const FOAM_TIME_PER_ML: u32 = 20 / SPEED;
 const GRIND_COFFEE_FIXED_TIME: u32 = 4 / SPEED;
 const GRIND_COFFEE_TIME_PER_MG: u32 = 50 / SPEED;
 
-const WIP_MILK_FIXED_TIME: u32 = 4 / SPEED;
-const WIP_MILK_TIME_PER_MG: u32 = 60 / SPEED;
+const WHIP_MILK_FIXED_TIME: u32 = 4 / SPEED;
+const WHIP_MILK_TIME_PER_MG: u32 = 60 / SPEED;
 
 /// Resource Errors
 #[derive(Debug, Clone)]
@@ -148,7 +148,7 @@ impl Resources {
 
     /// Transforms the required amount of milk into foam.
     /// Takes time according to the amount.
-    fn wip_needed_foam<'cof>(
+    fn whip_needed_foam<'cof>(
         mut foam: MutexGuard<'cof, u32>,
         mut milk: MutexGuard<u32>,
         amount: u32,
@@ -158,7 +158,7 @@ impl Resources {
         if needed > *milk as i64 {
             Err(Error::InsufficientResources)
         } else if needed > 0 {
-            let duration = needed as u32 * WIP_MILK_TIME_PER_MG + WIP_MILK_FIXED_TIME;
+            let duration = needed as u32 * WHIP_MILK_TIME_PER_MG + WHIP_MILK_FIXED_TIME;
             sleep::sleep(std::time::Duration::from_millis(duration.into()));
             *milk -= needed as u32;
             *foam += needed as u32;
@@ -179,7 +179,7 @@ impl Resources {
         let foam = self.foam.lock().expect("Failed to lock foam");
         let milk = self.milk.lock().expect("Failed to lock milk");
 
-        let mut foam = Self::wip_needed_foam(foam, milk, amount, &self.monitor)?;
+        let mut foam = Self::whip_needed_foam(foam, milk, amount, &self.monitor)?;
 
         let duration = amount * FOAM_TIME_PER_ML + FOAM_FIXED_TIME;
         sleep::sleep(std::time::Duration::from_millis(duration.into()));
@@ -242,7 +242,7 @@ mod resources_test {
     }
 
     #[test]
-    fn can_use_foam_wiping_milk() {
+    fn can_use_foam_whipping_milk() {
         let resources = Resources::new(0, 0, 0, 100).unwrap();
         resources.use_foam(100).unwrap();
     }

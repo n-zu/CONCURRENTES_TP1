@@ -142,7 +142,7 @@ mod resources_monitor_tests {
     }
 
     #[test]
-    fn update_coffe_beans_below_threshold() {
+    fn update_coffee_beans_below_threshold() {
         let mut monitor = super::ResourcesMonitor::new(0, 0, 0, 0);
         assert_eq!(monitor.low_on_coffee_beans, true);
         monitor.update_coffee_beans(config::G);
