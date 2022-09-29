@@ -35,15 +35,42 @@ An `Orders::NoMoreOrders` object is used to signal that the dispensers should st
 
 `resources` `resource_monitor`
 
-- resources :
-  - coffee/foam have locked access ( only one at a time )
-  - will produce only what is needed
-  - as we asume a cup does not surpass the container, we wont need multiple grinding / whipping
-- output : clears/refreshes screen to update data , friendly realtime UI, rather than logging
+`Resources` provides a simple interface for using a set amount of **coffee**, **water** and **foam**; making sure that coffee and foam are only used by a single consumer at a time; as well as grinding and whipping milk to reach the required amount.
+
+The usage of all resources is emulated as a `sleep`, lineally dependent on the amount of resource used.
+
+Coffee/Beans and Foam/Milk work in an analogous fashion.
+
+Orders are fulfilled in a greedy fashion; if a resource needs to be _transformed_, only the minimum required will be processed.
+
+> When an amount of coffee greater than that in the container is requested, the machine will grind just enough beans to cover the request.
+>
+> When an amount of foam greater than that in the container is requested, the machine will whip just enough milk to cover the request.
+
+This last decision could result inefficient if the fixed-time for processing was high. Yet, it minimizes waste and makes orders _individually_ faster. Also, this would be a more realistic approach, where ingredients are kept as fresh as possible.
+
+In order to be able to monitor resources even when they are being used, a `ResourceMonitor` is used to keep track of the current amount of resources in a duplicate set of fields that gets updated after the their usage.
+
+A friendly UI is provided to monitor the resources in real time.
+The data is refreshed at an interval, marking low resources accordingly.
+
+```
+Coffee: 100 mg
+Coffee Beans: 8180 mg
+Foam: 100 ml
+Milk: 150 ml [WARNING: below threshold]
+```
 
 ### Dispensers
 
 `dispenser`
+
+A simple interface is provided to consume orders and use resources to fulfill them.
+Its implementation is trivial as most logic is handled by `Resources`.
+
+An interesting aspect of its functioning is that when it pops `NoMoreOrders` from the queue, it will put it back and stop; so that other dispensers can also stop.
+
+If an order fails to be fulfilled, it will be ignored, as it is assumed that the machine's resources are enough to fulfill all the orders.
 
 ## Development
 
